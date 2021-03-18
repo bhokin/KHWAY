@@ -56,6 +56,11 @@ class PacmanGame(GameApp):
         self.elements.append(self.pacman1)
         self.elements.append(self.pacman2)
 
+        self.command_map = {'W': self.get_pacman_next_direction_function(self.pacman1, DIR_UP),
+            # TODO:
+            #   - add all other commands to the command_map
+        }
+
     def pre_update(self):
         pass
 
@@ -80,6 +85,16 @@ class PacmanGame(GameApp):
             self.pacman2.set_next_direction(DIR_DOWN)
         elif event.char.upper() == 'L':
             self.pacman2.set_next_direction(DIR_RIGHT)
+
+        ch = event.char.upper()
+        # TODO:
+        #   - check if ch is in self.command_map, if it is in the map, call the function.
+
+    def get_pacman_next_direction_function(self, pacman, next_direction):
+        def f():
+            pacman.set_next_direction(next_direction)
+        return f
+
 
 if __name__ == "__main__":
     root = tk.Tk()
