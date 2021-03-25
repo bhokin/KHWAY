@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 
 from gamelib import Sprite, GameApp, Text
 
@@ -22,8 +23,12 @@ class Pacman(Sprite):
         self.direction = DIR_STILL
         self.next_direction = DIR_STILL
 
-        x, y = maze.piece_center(r,c)
+        x, y = maze.piece_center(r, c)
         super().__init__(app, 'images/pacman.png', x, y)
+
+        # self.is_super_speed = False
+        # self.super_speed_counter = 0
+        self.state = NormalPacmanState(self)
 
     def update(self):
         if self.maze.is_at_center(self.x, self.y):
@@ -31,17 +36,52 @@ class Pacman(Sprite):
 
             if self.maze.has_dot_at(r, c):
                 self.maze.eat_dot_at(r, c)
-            
+                self.state.random_upgrade()
+
             if self.maze.is_movable_direction(r, c, self.next_direction):
                 self.direction = self.next_direction
             else:
                 self.direction = DIR_STILL
 
-        self.x += PACMAN_SPEED * DIR_OFFSET[self.direction][0]
-        self.y += PACMAN_SPEED * DIR_OFFSET[self.direction][1]
+        self.state.move_pacman()
 
     def set_next_direction(self, direction):
         self.next_direction = direction
+
+
+class NormalPacmanState:
+    def __init__(self, pacman):
+        self.pacman = pacman
+
+    def random_upgrade(self):
+        if random.random() < 0.1:
+            self.pacman.state = SuperPacmanState(self.pacman)
+
+    def move_pacman(self):
+        # TODO:
+        #   - update the pacman's location with normal speed
+        self.pacman.x += PACMAN_SPEED * DIR_OFFSET[self.pacman.direction][0]
+        self.pacman.y += PACMAN_SPEED * DIR_OFFSET[self.pacman.direction][1]
+
+
+class SuperPacmanState:
+    def __init__(self, pacman):
+        self.pacman = pacman
+        self.counter = 0
+
+    def random_upgrade(self):
+        pass
+
+    def move_pacman(self):
+        # TODO:
+        #   - update the pacman's location with super speed
+        #   - update the counter, if the counter >= 50, set state back to NormalPacmanState
+        speed = 2 * PACMAN_SPEED
+        self.counter += 1
+        self.pacman.x += speed * DIR_OFFSET[self.pacman.direction][0]
+        self.pacman.y += speed * DIR_OFFSET[self.pacman.direction][1]
+        if self.counter >= 50:
+            self.pacman.state = NormalPacmanState(self.pacman)
 
 
 class PacmanGame(GameApp):
@@ -58,9 +98,13 @@ class PacmanGame(GameApp):
         self.elements.append(self.pacman2)
 
         self.command_map = {'W': self.get_pacman_next_direction_function(self.pacman1, DIR_UP),
-            # TODO:
-            #   - add all other commands to the command_map
-        }
+                            'A': self.get_pacman_next_direction_function(self.pacman1, DIR_LEFT),
+                            'S': self.get_pacman_next_direction_function(self.pacman1, DIR_DOWN),
+                            'D': self.get_pacman_next_direction_function(self.pacman1, DIR_RIGHT),
+                            'I': self.get_pacman_next_direction_function(self.pacman2, DIR_UP),
+                            'J': self.get_pacman_next_direction_function(self.pacman2, DIR_LEFT),
+                            'K': self.get_pacman_next_direction_function(self.pacman2, DIR_DOWN),
+                            'L': self.get_pacman_next_direction_function(self.pacman2, DIR_RIGHT)}
 
     def pre_update(self):
         pass
@@ -69,27 +113,10 @@ class PacmanGame(GameApp):
         pass
 
     def on_key_pressed(self, event):
-        if event.char.upper() == 'A':
-            self.pacman1.set_next_direction(DIR_LEFT)
-        elif event.char.upper() == 'W':
-            self.pacman1.set_next_direction(DIR_UP)
-        elif event.char.upper() == 'S':
-            self.pacman1.set_next_direction(DIR_DOWN)
-        elif event.char.upper() == 'D':
-            self.pacman1.set_next_direction(DIR_RIGHT)
-
-        if event.char.upper() == 'J':
-            self.pacman2.set_next_direction(DIR_LEFT)
-        elif event.char.upper() == 'I':
-            self.pacman2.set_next_direction(DIR_UP)
-        elif event.char.upper() == 'K':
-            self.pacman2.set_next_direction(DIR_DOWN)
-        elif event.char.upper() == 'L':
-            self.pacman2.set_next_direction(DIR_RIGHT)
-
         ch = event.char.upper()
-        # TODO:
-        #   - check if ch is in self.command_map, if it is in the map, call the function.
+        # check if ch is in self.command_map, if it is in the map, call the function.
+        if ch in self.command_map:
+            self.command_map[ch]()
 
     def get_pacman_next_direction_function(self, pacman, next_direction):
         def f():
@@ -100,7 +127,7 @@ class PacmanGame(GameApp):
 if __name__ == "__main__":
     root = tk.Tk()
     root.title("Monkey Banana Game")
- 
+
     # do not allow window resizing
     root.resizable(False, False)
     app = PacmanGame(root, CANVAS_WIDTH, CANVAS_HEIGHT, UPDATE_DELAY)
